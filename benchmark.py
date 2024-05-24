@@ -8,7 +8,12 @@ import anomalib.models as Models
 from anomalib.engine import Engine
 from anomalib.metrics import AUPRO, AUROC
 
+# from splatpose import 
+
+from pad import anomaly_nerf as pad_anomaly
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+classnames = ["class-01"]
 
 def anomalib_data(name, root, normal_dir, abnormal_dir, mask_dir, image_size, task, seed=None):
     """
@@ -32,17 +37,16 @@ def anomalib_data(name, root, normal_dir, abnormal_dir, mask_dir, image_size, ta
     return datamodule
 
 def benchmark_anomalib():
+    print("Benchmark Anomalib")
+
     # models = {
     #     'ganomaly', 'uflow', 'dsr', 'fastflow', 'win_clip', 'csflow', 'padim', 
     #     'dfm', 'patchcore', 'reverse_distillation', 'rkde', 'efficient_ad', 
     #     'cfa', 'draem', 'dfkde', 'stfpm', 'cflow'
     # }
     models = {Models.Ganomaly, Models.Patchcore, Models.Draem}
-    classes = {
-        'class-01'
-    }
     engine = Engine()
-    for cur_class in classes:
+    for cur_class in classnames:
         # Loop over the possible defect types?
         datamodule = anomalib_data(
             name=cur_class, 
@@ -66,9 +70,12 @@ def benchmark_anomalib():
             print(predict)
 
 def benchmark_pad():
-    pass
+    print("Benchmark PAD")
+    pad_anomaly.run(classnames=classnames)
 
 def benchmark_splatpose():
+    print("Benchmark Splatpose")
+
     pass
 
 if __name__ == "__main__":

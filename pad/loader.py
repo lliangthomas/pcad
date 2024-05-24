@@ -9,13 +9,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms as T
 
-CLASS_NAMES = ['01Gorilla', '02Unicorn', '03Mallard', '04Turtle', '05Whale', '06Bird', '07Owl', '08Sabertooth', '09Swan',
-               '10Sheep', '11Pig', '12Zalika', '13Pheonix', '14Elephant', '15Parrot', '16Cat', '17Scorpion', '18Obesobeso', '19Bear', '20Puppy']
-
-class LEGODataset(Dataset):
-    def __init__(self, dataset_path, class_name='15', resize=256):
-        assert class_name in CLASS_NAMES, 'class_name: {}, should be in {}'.format(
-            class_name, CLASS_NAMES)
+class Dataset(Dataset):
+    def __init__(self, dataset_path, class_name, resize=256):
         self.dataset_path = dataset_path
         self.class_name = class_name
         self.size = resize
@@ -26,8 +21,7 @@ class LEGODataset(Dataset):
         x, y, mask = self.x[idx], self.y[idx], self.mask[idx]
         x = imageio.imread(x)
         x = cv2.resize(x, (self.size, self.size), interpolation=cv2.INTER_AREA).astype(np.uint8)
-
-
+        
         if y == 0:
             mask = torch.zeros([1, self.size, self.size])
         else:

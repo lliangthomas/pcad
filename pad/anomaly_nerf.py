@@ -10,8 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 import matplotlib as plt
 
-import datasets.LEGO_3D as lego
-from datasets.LEGO_3D import LEGODataset
+from pad.loader import Dataset
 from util.inerf_helpers import camera_transf
 from sklearn.metrics import roc_auc_score
 from util.nerf_helpers import load_nerf
@@ -19,14 +18,16 @@ from util.render_helpers import get_rays, render, to8b
 from util.utils import (config_parser, find_POI,
                    img2mse, load_blender_ad,pose_retrieval_loftr)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def run(classnames):
+    # DEBUG = False
+    # OVERLAY = True
 
-seed = 1024
-random.seed(seed)
-torch.manual_seed(seed)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def run():
-
+    seed = 1024
+    random.seed(seed)
+    torch.manual_seed(seed)
+    
     # Parameters
     parser = config_parser()
     args = parser.parse_args()
@@ -37,10 +38,7 @@ def run():
     lrate = args.lrate
     sampling_strategy = args.sampling_strategy
 
-    class_names = lego.CLASS_NAMES if args.class_name == 'all' else [
-        args.class_name]
-
-    for class_name in class_names:
+    for class_name in classnames:
         # load the good imgs with their poses
         imgs, hwf, poses = load_blender_ad(
             args.data_dir, model_name, args.half_res, args.white_bkgd)
@@ -48,11 +46,11 @@ def run():
         near, far = 2., 6.  # Blender
 
         # load the anomaly image
-        lego_dataset = LEGODataset(dataset_path=args.data_dir,
+        dataset = Dataset(dataset_path=args.data_dir,
                                    class_name=class_name,
                                    resize=400)
 
-        lego_loader = DataLoader(dataset=lego_dataset,
+        loader = DataLoader(dataset=dataset,
                                  batch_size=1,
                                  pin_memory=False)
         test_imgs = list()
@@ -60,7 +58,7 @@ def run():
         gt_list = list()
         
         index = 0
-        for x, y, mask in lego_loader:
+        for x, y, mask in loader:
             test_imgs.extend(x.cpu().numpy())
             gt_list.extend(y.cpu().numpy())
             mask = (mask.cpu().numpy()/255.0).astype(np.uint8)
@@ -188,9 +186,7 @@ def run():
             imageio.imwrite(os.path.join(testsavedir, 'rgb8.png'), rgb8)
             index = index+1
 
-DEBUG = False
-OVERLAY = True
 
-if __name__ == '__main__':
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    run()
+# if __name__ == '__main__':
+#     torch.set_default_tensor_type('torch.cuda.FloatTensor')
+#     run()
