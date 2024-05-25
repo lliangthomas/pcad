@@ -3,7 +3,7 @@ FROM mambaorg/micromamba:1.5-jammy-cuda-12.1.1
 WORKDIR /workspace
 ## Better to download the dataset in the container instead?
 #ADD dataset /workspace/dataset 
-#ADD pad /workspace/pad
+ADD pad /workspace/pad
 ADD src /workspace
 
 USER root
@@ -25,13 +25,5 @@ RUN pip install anomalib \
 
 # PAD
 RUN pip install -r requirements.txt
-
-# SplatPose
-ADD splatpose /workspace/splatpose
-RUN cd splatpose \
-    && micromamba env create --file environment.yml -y \
-    && micromamba activate gaussian_splatting \
-    && pip install submodules\diff-gaussian-rasterization \
-    && pip install submodules\simple-knn
 
 ENTRYPOINT ["/bin/bash"]

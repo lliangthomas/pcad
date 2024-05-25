@@ -19,15 +19,15 @@ from util.utils import (config_parser, find_POI,
                    img2mse, load_blender_ad,pose_retrieval_loftr)
 
 def run(classnames):
-    # DEBUG = False
-    # OVERLAY = True
+    DEBUG = False
+    OVERLAY = True
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     seed = 1024
     random.seed(seed)
     torch.manual_seed(seed)
-    
+
     # Parameters
     parser = config_parser()
     args = parser.parse_args()

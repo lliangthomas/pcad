@@ -1,9 +1,9 @@
 model_name = 01-test
 output_dir = ./output
 dataset_type = blender
-data_dir = ./data/LEGO-3D
+data_dir = ./sample-data/
 ckpt_dir = ./ckpts
-ckpt_name = 02Unicorn
+ckpt_name = 01-test
 
 use_viewdirs = True
 white_bkgd = True
