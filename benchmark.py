@@ -15,6 +15,7 @@ from pad import anomaly_nerf as pad_anomaly
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 classnames = ["class-01"]
 
+ROOT_DATA = "sample-data"
 def anomalib_data(name, root, normal_dir, abnormal_dir, mask_dir, image_size, task, seed=None):
     """
     Data in anomalib format
@@ -50,7 +51,7 @@ def benchmark_anomalib():
         # Loop over the possible defect types?
         datamodule = anomalib_data(
             name=cur_class, 
-            root="old-data/own-texture/", 
+            root=ROOT_DATA, 
             normal_dir="val/good", 
             abnormal_dir="val/defect-bottom-right",
             mask_dir="val_ground_truth/defect-bottom-right", # ??
@@ -66,8 +67,6 @@ def benchmark_anomalib():
                 model=model
                 # ckpt_path=f"results/experimental"
             )
-
-            print(predict)
 
 def benchmark_pad():
     print("Benchmark PAD")
