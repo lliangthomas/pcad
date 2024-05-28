@@ -7,8 +7,7 @@ from PIL import Image
 import cv2
 
 def rotation_matrix_from_vectors(vec1, vec2):
-    """
-    Find the rotation matrix that aligns vec1 to vec2
+    """ Find the rotation matrix that aligns vec1 to vec2
     :param vec1: A 3d "source" vector
     :param vec2: A 3d "destination" vector
     :return mat: A transform matrix (3x3) which when applied to vec1, aligns it with vec2.
@@ -86,10 +85,9 @@ k_augments = 5
 result_base_path = "MAD-Sim_3dgs"
 # path to the MAD-Sim data set
 mad_base_path = "MAD-Sim/"
-# classnames = ["01Gorilla", "02Unicorn", "03Mallard", "04Turtle", "05Whale", "06Bird", "07Owl", "08Sabertooth",
-            #   "09Swan", "10Sheep", "11Pig", "12Zalika", "13Pheonix", "14Elephant", "15Parrot", "16Cat", "17Scorpion",
-            #   "18Obesobeso", "19Bear", "20Puppy"]
-classnames = []
+classnames = ["01Gorilla", "02Unicorn", "03Mallard", "04Turtle", "05Whale", "06Bird", "07Owl", "08Sabertooth",
+              "09Swan", "10Sheep", "11Pig", "12Zalika", "13Pheonix", "14Elephant", "15Parrot", "16Cat", "17Scorpion",
+              "18Obesobeso", "19Bear", "20Puppy"]
 fix_mad_filenames(mad_base_path, classnames)
 
 prepare_pose_dataset = False
@@ -98,6 +96,8 @@ split_to_train = 1.0
 os.makedirs(result_base_path, exist_ok=True)
 
 for cl in classnames:
+    
+    print(f"Processing MAD class {cl}")
     class_dir = os.path.join(result_base_path, cl)
     os.makedirs(class_dir, exist_ok=True)
 
