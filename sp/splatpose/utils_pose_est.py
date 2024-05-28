@@ -478,8 +478,7 @@ def downsampling(x, size, to_tensor=False, bin=True):
 
 
 class DefectDataset(Dataset):
-    def __init__(self, dataset_dir, class_name, set='train', get_mask=True, get_features=True,
-                 train_subset=None):
+    def __init__(self, dataset_dir, class_name, set='train', get_mask=True, get_features=True, train_subset=None):
         super(DefectDataset, self).__init__()
         self.set = set
         self.labels = list()
@@ -488,9 +487,10 @@ class DefectDataset(Dataset):
         self.class_names = ['good']
         self.get_mask = get_mask
         self.get_features = get_features
-        self.image_transforms = transforms.Compose([transforms.Resize(img_size),
-                                                    transforms.ToTensor(),
-                                                   ])
+        self.image_transforms = transforms.Compose([
+            transforms.Resize(img_size),
+            transforms.ToTensor(),
+        ])
         root = os.path.join(dataset_dir, class_name)
         set_dir = os.path.join(root, set)
         subclass = os.listdir(set_dir)

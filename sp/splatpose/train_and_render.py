@@ -14,10 +14,6 @@ from scipy.ndimage import gaussian_filter
 from easydict import EasyDict
 import yaml
 
-# classnames = ["01Gorilla", "02Unicorn", "03Mallard", "04Turtle", "05Whale", "06Bird", "07Owl", "08Sabertooth",
-            #   "09Swan", "10Sheep", "11Pig", "12Zalika", "13Pheonix", "14Elephant", "15Parrot", "16Cat", "17Scorpion",
-            #   "18Obesobeso", "19Bear", "20Puppy"]
-
 classnames = {}
 
 pre_parser = ArgumentParser(description="Training parameters")
@@ -110,10 +106,13 @@ from utils_pose_est import ModelHelper, update_config
 from aupro import calculate_au_pro_au_roc
 
 
-test_images, reference_images, all_labels, gt_masks, times = main_pose_estimation(cur_class=config["classname"],
-                                                                                  model_dir_location=result_dir,
-                                                                                  k=config["k"], verbose=config["verbose"],
-                                                                                  data_dir=None)
+test_images, reference_images, all_labels, gt_masks, times = main_pose_estimation(
+    cur_class=config["classname"],
+    model_dir_location=result_dir,
+    k=config["k"],
+    verbose=config["verbose"],
+    data_dir="/home/thomasl/tmdt-benchmark/data" # TODO 
+)
 
 if config["wandb"] != 0:
     my_data = [[i, times[i]] for i in range(len(times))]
@@ -134,14 +133,14 @@ model.cuda()
 criterion = torch.nn.MSELoss(reduction='none')
 tf_img = transforms.Compose([
     transforms.ToPILImage(),
-    transforms.Resize(224),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
 tf_mask = transforms.Compose([
     transforms.ToPILImage(),
-    transforms.Resize(224, interpolation=transforms.InterpolationMode.NEAREST),
+    transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.NEAREST),
     ])
 
 test_imgs = list()
@@ -162,8 +161,11 @@ with torch.no_grad():
             score += torch.nn.functional.interpolate(mse_loss, size=224, mode='bilinear', align_corners=False)
 
         score = score.squeeze(1).cpu().numpy()
+        # print(score.shape)
         for i in range(score.shape[0]):
+            # print(f"{i}-th shape: {score[i].shape}")
             score[i] = gaussian_filter(score[i], sigma=4)
+            # print(f"{i}-th shape: {score[i].shape}")
         recon_imgs.extend(rgb.cpu().numpy())
         test_imgs.extend(ref.cpu().numpy())
         scores.append(score)

@@ -40,6 +40,8 @@ def generate_samples(n_samples, reference_translations, distance_factor=0.8, dev
                                     sigma * deviation_factor, size=n_samples)    
     # random directional vectors in R^3  
     direction = (np.random.rand(n_samples, 3) * 2) - 1
+    print(middle)
+    print(direction)
     dist_to_dir = np.linalg.norm((middle - (middle + direction)), axis=1)
     direction_multiplier = sample_dists / dist_to_dir
     # march from middle_point in the sampled direction until distance is reached
@@ -85,9 +87,10 @@ k_augments = 5
 result_base_path = "MAD-Sim_3dgs"
 # path to the MAD-Sim data set
 mad_base_path = "MAD-Sim/"
-classnames = ["01Gorilla", "02Unicorn", "03Mallard", "04Turtle", "05Whale", "06Bird", "07Owl", "08Sabertooth",
-              "09Swan", "10Sheep", "11Pig", "12Zalika", "13Pheonix", "14Elephant", "15Parrot", "16Cat", "17Scorpion",
-              "18Obesobeso", "19Bear", "20Puppy"]
+# classnames = ["01Gorilla", "02Unicorn", "03Mallard", "04Turtle", "05Whale", "06Bird", "07Owl", "08Sabertooth",
+            #   "09Swan", "10Sheep", "11Pig", "12Zalika", "13Pheonix", "14Elephant", "15Parrot", "16Cat", "17Scorpion",
+            #   "18Obesobeso", "19Bear", "20Puppy"]
+classnames = ["01Gorilla"]
 fix_mad_filenames(mad_base_path, classnames)
 
 prepare_pose_dataset = False
@@ -111,12 +114,14 @@ for cl in classnames:
     os.makedirs(new_test_dir, exist_ok=True)
     
     n_train_samples = len(os.listdir(orig_train_dir))
-    
+    # print(n_train_samples)
     # sample indices in case we want to split the train set
     chosen_train_idx = np.random.choice(n_train_samples, int(n_train_samples * split_to_train), replace=False)
     chosen_test_idx = np.array([a for a in range(n_train_samples) if a not in chosen_train_idx])
-    print(chosen_test_idx)
+    # print(chosen_train_idx)
+    # print(chosen_test_idx)
     train_samples = sorted(os.listdir(orig_train_dir), key=lambda x : int(x.split("_")[-1].split(".")[0]))
+    # print(train_samples)
     
     for sample_idx, train_sample in enumerate(train_samples):
 
@@ -140,32 +145,32 @@ for cl in classnames:
         train_transforms = json.load(f)
     camera_angle_x = train_transforms["camera_angle_x"]
     
-    if prepare_pose_dataset:
-        test_transforms = {
-        "camera_angle_x" : camera_angle_x,
-        "frames" : []
-        }
-        new_train_transforms = {
-            "camera_angle_x" : camera_angle_x,
-            "frames" : []
-        }
+    # if prepare_pose_dataset:
+    #     test_transforms = {
+    #     "camera_angle_x" : camera_angle_x,
+    #     "frames" : []
+    #     }
+    #     new_train_transforms = {
+    #         "camera_angle_x" : camera_angle_x,
+    #         "frames" : []
+    #     }
         
-        for sample_idx in range(n_train_samples):
-            cur_num = int(train_transforms["frames"][sample_idx]["file_path"].split("/")[-1].split(".")[0])
-            is_train = sample_idx in chosen_train_idx
-            frame_entry = {
-                "file_path" : f"./train/train_{cur_num:03d}" if is_train else f"./test/test_{cur_num:03d}",
-                "transform_matrix" : train_transforms["frames"][sample_idx]["transform_matrix"]
-            }
-            (new_train_transforms if is_train else test_transforms)["frames"].append(frame_entry)
-        # dump training poses back to the data set
-        with open(os.path.join(class_dir, "transforms_train.json"), "w") as f:
-            json.dump(new_train_transforms, f, indent=2)
-        # dump the json
-        with open(os.path.join(class_dir, "transforms_test.json"), "w") as f:
-            json.dump(test_transforms, f, indent=2)
-        print(f"Done with preparing pose data set at split {split_to_train} and {len(new_train_transforms['frames'])} & {len(test_transforms['frames'])}")
-        continue
+    #     for sample_idx in range(n_train_samples):
+    #         cur_num = int(train_transforms["frames"][sample_idx]["file_path"].split("/")[-1].split(".")[0])
+    #         is_train = sample_idx in chosen_train_idx
+    #         frame_entry = {
+    #             "file_path" : f"./train/train_{cur_num:03d}" if is_train else f"./test/test_{cur_num:03d}",
+    #             "transform_matrix" : train_transforms["frames"][sample_idx]["transform_matrix"]
+    #         }
+    #         (new_train_transforms if is_train else test_transforms)["frames"].append(frame_entry)
+    #     # dump training poses back to the data set
+    #     with open(os.path.join(class_dir, "transforms_train.json"), "w") as f:
+    #         json.dump(new_train_transforms, f, indent=2)
+    #     # dump the json
+    #     with open(os.path.join(class_dir, "transforms_test.json"), "w") as f:
+    #         json.dump(test_transforms, f, indent=2)
+    #     print(f"Done with preparing pose data set at split {split_to_train} and {len(new_train_transforms['frames'])} & {len(test_transforms['frames'])}")
+    #     continue
                 
     
     training_poses = list()
@@ -201,7 +206,7 @@ for cl in classnames:
     test_poses = np.zeros((test_translations.shape[0], 4, 4))
 
     empty_image = Image.fromarray(np.ones((800,800), dtype=np.uint8) * 255)
-
+    # print(test_translations)
     for idx in range(test_translations.shape[0]):
 
         # calculate rotation from given translation
@@ -216,6 +221,8 @@ for cl in classnames:
         test_poses[idx, 3,3] = 1
         test_poses[idx, :3,3] = cur_vec
         test_poses[idx, :3,:3] = rot
+
+        # print(test_poses)
         # append to transforms json
         test_transforms["frames"].append(
             {

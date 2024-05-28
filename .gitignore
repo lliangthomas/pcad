@@ -1,5 +1,6 @@
 .DS_Store
 data
+processed_data
 MAD-Sim*
 retrieval
 __pycache__

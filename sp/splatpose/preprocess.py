@@ -41,16 +41,18 @@ def generate_samples(n_samples, reference_translations, distance_factor=0.8, dev
                                     sigma * deviation_factor, size=n_samples)    
     # random directional vectors in R^3  
     direction = (np.random.rand(n_samples, 3) * 2) - 1
+    print(middle)
+    print(direction)
     dist_to_dir = np.linalg.norm((middle - (middle + direction)), axis=1)
     direction_multiplier = sample_dists / dist_to_dir
     # march from middle_point in the sampled direction until distance is reached
     new_points = middle + np.broadcast_to(direction_multiplier[...,None], (n_samples, 3)) * direction
     return new_points
 
-
+PARENT = "/home/thomasl"
 k_augments = 3
-result_path = "processed_data"
-base_path = "data"
+result_path = f"{PARENT}/tmdt-benchmark/processed_data"
+base_path = f"{PARENT}/tmdt-benchmark/data"
 
 split_train = 1.
 os.makedirs(result_path, exist_ok=True)
@@ -62,7 +64,84 @@ for cl in classnames:
 
     orig_train_dir = os.path.join(base_path, cl, "train", "good")
     train_dir = os.path.join(class_path, "train")
-    os.makedirs(new_train_dir, exist_ok=True)
+    os.makedirs(train_dir, exist_ok=True)
 
     test_dir = os.path.join(class_path, "test")
-    os.makedirs(new_test_dir, exist_ok=True)
+    os.makedirs(test_dir, exist_ok=True)
+
+    train_samples = len(os.listdir(orig_train_dir))
+
+    train_index = np.random.choice(train_samples, int(train_samples * split_train), replace=False)
+    test_index = []
+
+    train_samples = os.listdir(orig_train_dir)
+
+    # Discard transparent images
+
+    training_poses = []
+
+    with open(os.path.join(base_path, cl, "transforms.json"), "r") as f:
+        train_transforms = json.load(f)
+    camera_angle_x = train_transforms["camera_angle_x"]
+
+    # # refactor training filepaths
+    for frame in train_transforms["frames"]:
+    #     cur_num = int(frame["file_path"].split("/")[-1].split(".")[0])
+    #     frame["file_path"] = f"./train/train_{cur_num:03d}"
+        training_poses.append(np.array(frame["transform_matrix"])[None,...])
+    
+    # dump training poses back to the data set
+    with open(os.path.join(class_path, "transforms_train.json"), "w") as f:
+        json.dump(train_transforms, f, indent=2)
+
+    # gather training pose information
+    training_poses = np.concatenate(training_poses, axis=0)
+    all_translations = training_poses[:,:3,3]
+    all_rotations = training_poses[:,:3,:3]
+    mean_point = np.mean(all_translations, axis=0)
+
+    # generate test poses (translation vectors for now)
+    test_translations = generate_samples(k_augments, all_translations)
+    test_translations_2 = generate_samples(k_augments, all_translations, 1.2)
+    test_translations = np.concatenate((test_translations, test_translations_2), axis=0)
+    # for each test sample grab the closest rotations and translations in the trainset
+    distances = pairwise_distances(X=test_translations, Y=all_translations).argmin(axis=1)
+    closest_translations = all_translations[distances]
+    closest_rotations = all_rotations[distances]
+
+    test_transforms = {
+        "camera_angle_x" : camera_angle_x,
+        "frames" : []
+    }
+    test_poses = np.zeros((test_translations.shape[0], 4, 4))
+
+    empty_image = Image.fromarray(np.ones((800,800), dtype=np.uint8) * 255)
+    # print(test_translations)
+    for idx in range(test_translations.shape[0]):
+
+        # calculate rotation from given translation
+        cur_vec = test_translations[idx]
+        base_vec = closest_translations[idx] - mean_point
+        # NOTE: original procedure where we first rotate /w nearest available rotation and then to our point from
+        #       there to our desired point
+        rot = closest_rotations[idx]
+        rot = rotation_matrix_from_vectors(base_vec, cur_vec)
+        rot = rot @ closest_rotations[idx]
+        
+        test_poses[idx, 3,3] = 1
+        test_poses[idx, :3,3] = cur_vec
+        test_poses[idx, :3,:3] = rot
+
+        # print(test_poses)
+        # append to transforms json
+        test_transforms["frames"].append(
+            {
+                "file_path" : f"./test/test_{idx:03d}",
+                "transform_matrix" : test_poses[idx].tolist()
+            }
+        )
+        empty_image.save(os.path.join(class_path, "test", f"test_{idx:03d}.png"))
+
+    # dump the json
+    with open(os.path.join(class_path, "transforms_test.json"), "w") as f:
+        json.dump(test_transforms, f, indent=2)

@@ -13,14 +13,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils_pose_est import DefectDataset, pose_retrieval_loftr, camera_transf
 
-classnames = ["01Gorilla", "02Unicorn", "03Mallard", "04Turtle", "05Whale", "06Bird", "07Owl", "08Sabertooth",
-              "09Swan", "10Sheep", "11Pig", "12Zalika", "13Pheonix", "14Elephant", "15Parrot", "16Cat", "17Scorpion",
-              "18Obesobeso", "19Bear", "20Puppy"]
-
 def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, data_dir=None):
     
     model_dir = model_dir_location
-    data_dir = "MAD-Sim/" if data_dir is None else data_dir
     trainset = DefectDataset(data_dir, cur_class, "train", True, True)
 
     train_imgs = torch.cat([a[0][None,...] for a in trainset], dim=0)
@@ -160,11 +155,11 @@ def evaluate_pose_estimation(cur_class, model_dir_location, k=150, verbose=False
     import numpy as np
     import wandb
 
-    
-    if cur_class in classnames:
-        data_dir = "MAD-Sim_Subsets/0.8_0/"
-    else:
-        data_dir = "nerf_synthetic/"
+    data_dir = ""
+    # if cur_class in classnames:
+    #     data_dir = "MAD-Sim_Subsets/0.8_0/"
+    # else:
+    #     data_dir = "nerf_synthetic/"
     
     trainset = DatasetPose(data_dir, cur_class, "train", True)
     train_imgs = torch.cat([a[0][None,...] for a in trainset], dim=0)
