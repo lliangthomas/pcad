@@ -115,7 +115,7 @@ for cl in classnames:
     # sample indices in case we want to split the train set
     chosen_train_idx = np.random.choice(n_train_samples, int(n_train_samples * split_to_train), replace=False)
     chosen_test_idx = np.array([a for a in range(n_train_samples) if a not in chosen_train_idx])
-        
+    print(chosen_test_idx)
     train_samples = sorted(os.listdir(orig_train_dir), key=lambda x : int(x.split("_")[-1].split(".")[0]))
     
     for sample_idx, train_sample in enumerate(train_samples):
