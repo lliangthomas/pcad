@@ -8,14 +8,10 @@ import anomalib.models as Models
 from anomalib.engine import Engine
 from anomalib.metrics import AUPRO, AUROC
 
-# from splatpose import 
-
-from pad import anomaly_nerf as pad_anomaly
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 classnames = ["class-01"]
-
 ROOT_DATA = "sample-data"
+
 def anomalib_data(name, root, normal_dir, abnormal_dir, mask_dir, image_size, task, seed=None):
     """
     Data in anomalib format
@@ -67,15 +63,6 @@ def benchmark_anomalib():
                 model=model
                 # ckpt_path=f"results/experimental"
             )
-
-def benchmark_pad():
-    print("Benchmark PAD")
-    pad_anomaly.run(classnames=classnames)
-
-def benchmark_splatpose():
-    print("Benchmark Splatpose")
-
-    pass
 
 if __name__ == "__main__":
     benchmark_anomalib()

@@ -23,7 +23,7 @@ classnames = {}
 pre_parser = ArgumentParser(description="Training parameters")
 pre_parser.add_argument("-k", metavar="K", type=int, help="number of pose estimation steps", default=175)
 pre_parser.add_argument("-c", "-classname", metavar="c", type=str, help="current class to run experiments on",
-                        default="01Gorilla")
+                        default="class-01")
 pre_parser.add_argument("-wandb_config", metavar="WC", type=str, help="the wandb config to use", default="None")
 pre_parser.add_argument("-p", "-prefix", metavar="pf", type=str, help="prefix for the wandb run name", default="to_delete")
 pre_parser.add_argument("-seed", type=int, help="seed for random behavior", default=0)
@@ -31,7 +31,7 @@ pre_parser.add_argument("-gauss_iters", type=int, help="number of training itera
 pre_parser.add_argument("-wandb", type=int, help="whether we track with wandb", default=0)
 pre_parser.add_argument("-train", type=int, help="whether we train or look for a saved model", default=1)                   
 pre_parser.add_argument("-v", type=int, help="verbosity", default=0)                        
-pre_parser.add_argument("-data_path", type=str, help="path pointing towards the usable data set", default="MAD-Sim_3dgs/")                        
+pre_parser.add_argument("-data_path", type=str, help="path pointing towards the usable data set", default="/workspace/data")                        
 
 args = pre_parser.parse_args()
 

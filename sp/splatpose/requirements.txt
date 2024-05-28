@@ -9,3 +9,4 @@ einops==0.6.1
 kornia==0.6.12
 yacs==0.1.8
 gdown==4.7.3
+plyfile

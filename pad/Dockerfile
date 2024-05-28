@@ -1,10 +1,8 @@
 FROM mambaorg/micromamba:1.5-jammy-cuda-12.1.1
 
 WORKDIR /workspace
-## Better to download the dataset in the container instead?
-#ADD dataset /workspace/dataset 
 ADD pad /workspace/pad
-ADD src /workspace
+ADD requirements.txt /workspace
 
 USER root
 RUN apt-get update \
@@ -17,13 +15,5 @@ RUN micromamba config append channels conda-forge \
 
 SHELL ["micromamba", "run", "-n", "benchmark", "/bin/bash", "-c"]
 
-# Anomalib
-RUN pip install anomalib \
-    && anomalib install \
-    # pkg_resources deprecated from setuptools >= 70
-    && pip install setuptools==69.5.1
-
 # PAD
 RUN pip install -r requirements.txt
-
-ENTRYPOINT ["/bin/bash"]
