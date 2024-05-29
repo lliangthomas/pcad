@@ -17,7 +17,7 @@ echo $gpus
 cd /data/tliang/tmdt-benchmark/sp/
 docker build . -t benchmark-sp
 docker run $gpus --shm-size 96G \
-	-v /data/tliang/tmdt-benchmark/sp/splatpose:/workspace/splatpose \
+	-v /data/tliang/tmdt-benchmark/bench-sp/splatpose:/workspace/splatpose \
 	-v /data/tliang/tmdt-benchmark/data:/workspace/data \
 	--rm \
 	benchmark-sp \
