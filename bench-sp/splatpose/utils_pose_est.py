@@ -547,7 +547,7 @@ class DefectDataset(Dataset):
 
         self.img_mean = torch.FloatTensor(norm_mean)[:, None, None]
         self.img_std = torch.FloatTensor(norm_std)[:, None, None]
-
+        print(f"{set} DATASET IMAGES: {self.images}")
     def __len__(self):
         return len(self.images)
 

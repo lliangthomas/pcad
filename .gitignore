@@ -1,5 +1,9 @@
 .DS_Store
 data
+uncompressed
+old-data
+nerf-data
+orig-data
 processed_data
 MAD-Sim*
 retrieval

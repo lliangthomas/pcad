@@ -111,7 +111,8 @@ test_images, reference_images, all_labels, gt_masks, times = main_pose_estimatio
     model_dir_location=result_dir,
     k=config["k"],
     verbose=config["verbose"],
-    data_dir="/home/thomasl/tmdt-benchmark/data" # TODO 
+    # data_dir="/home/thomasl/tmdt-benchmark/data" # TODO 
+    data_dir="/workspace/orig-data"
 )
 
 if config["wandb"] != 0:
@@ -175,8 +176,8 @@ max_anomaly_score = scores.max()
 min_anomaly_score = scores.min()
 scores = (scores - min_anomaly_score) / (max_anomaly_score - min_anomaly_score)
 gt_mask = np.concatenate([np.asarray(tf_mask(a))[None,...] for a in gt_masks], axis=0)
-# gt_mask[gt_mask == 255] = 1 # ???
-precision, recall, thresholds = precision_recall_curve(gt_mask.flatten(), scores.flatten(), pos_label=255) # Error in code ?
+gt_mask[gt_mask == 255] = 1 # Added
+precision, recall, thresholds = precision_recall_curve(gt_mask.flatten(), scores.flatten()) # Error in code ?
 a = 2 * precision * recall
 b = precision + recall
 f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)

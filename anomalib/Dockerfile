@@ -1,19 +1,11 @@
-FROM mambaorg/micromamba:1.5-jammy-cuda-12.1.1
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /workspace
-ADD pad /workspace/pad
-ADD src /workspace
 
 USER root
 RUN apt-get update \
-    && apt-get install -y wget
-
-SHELL ["/bin/bash", "-c"]
-
-RUN micromamba config append channels conda-forge \ 
-    && micromamba create -n benchmark python=3.10 -y
-
-SHELL ["micromamba", "run", "-n", "benchmark", "/bin/bash", "-c"]
+    && apt-get install -y wget ffmpeg libsm6 libxext6
 
 # Anomalib
 RUN pip install anomalib \
