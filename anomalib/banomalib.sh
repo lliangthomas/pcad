@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task 4
 #SBATCH --gres=gpu:1
-#SBATCH --mem=128G
+#SBATCH --mem=64G
 #SBATCH -t 2-0:00
 #SBATCH -o /data/tliang/log/job-%x-%A.out
 #SBATCH -e /data/tliang/log/job-%x-%A.err
@@ -18,9 +18,9 @@ cd /data/tliang/tmdt-benchmark/anomalib
 # docker build . -t test-anomalib
 
 # Train NeRF
-docker run $gpus --shm-size 96G \
+docker run $gpus --shm-size 48G \
 	-v /data/tliang/tmdt-benchmark/anomalib:/workspace/anomalib \
 	-v /data/tliang/tmdt-benchmark/data:/workspace/data \
     --rm \
 	test-anomalib \
-    /bin/bash -c "cd /workspace/anomalib && python benchmark.py"
+    /bin/bash -c "cd /workspace/anomalib && python benchmark.py --model=$1"
