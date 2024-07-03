@@ -2,57 +2,85 @@ import json
 import os
 import shutil
 
-PARENT = "/data/tliang/tmdt-benchmark"
-ORIG_PREFIX = f"{PARENT}/orig-data/mguard"
-NEW_PREFIX = f"{PARENT}/data/mguard"
+PARENT = "/home/thomasl/tmdt-benchmark/0702_dataset"
+ORIG_PREFIX = f"{PARENT}/bus_coppler_gray"
+NEW_PREFIX = ORIG_PREFIX
+# NEW_PREFIX = f"{PARENT}/switch_8_port"
+CAM_ANGLE = 1.1091441906486563
 
-# def nerf_data():
-    # with open(f'{ORIG_PREFIX}/transforms.json', 'r') as inputf:
-    #     data = json.load(inputf)
-#     files = os.listdir(f'{ORIG_PREFIX}/train/good')
-#     files.sort()
-#     train_split = int(len(files) * 0.8)
-#     val_split = train_split + int(len(files) * 0.1)
-#     test_split = len(files)
+def split(data, start, end, name):
+    split_data = {'camera_angle_x': CAM_ANGLE, 'frames': []}
+    os.makedirs(f"{NEW_PREFIX}/{name}", exist_ok=True)
+    for i in range(start, end):
+        split_data['frames'].append({
+            'file_path': f"{name}/{i}",
+            'transform_matrix': data['frames'][i]['transform_matrix']
+        })
+        shutil.copy(src=f"{ORIG_PREFIX}/images/render_{i}.png", dst=f"{NEW_PREFIX}/{name}/{i}.png")
+    with open(f"{NEW_PREFIX}/transforms_{name}.json", 'w') as outputf:
+        json.dump(split_data, outputf, indent=4)
 
-#     print(train_split, val_split, test_split)
-
-#     def split(start, end, name):
-#         split_data = {'frames': [], 'camera_angle_x': 63.3536538458742}
-#         for i in range(start, end):
-#             split_data['frames'].append({
-#                 'file_path': f"{name}/{files[i][:-4]}",
-#                 'transform_matrix': data['frames'][i]['transform_matrix']
-#             })
-#             # if name != "train":
-#                 # shutil.move(src=f"{NEW_PREFIX}/train/{files[i]}", dst=f"{NEW_PREFIX}/{name}/{files[i]}")
-#         with open(f"{NEW_PREFIX}/transforms_{name}.json", 'w') as outputf:
-#             json.dump(split_data, outputf, indent=2)
-
-#     split(0, train_split, "train")
-#     split(train_split, val_split, "val")
-#     split(val_split, len(files), "test")
-
-# nerf_data()
-
-def data():
+def nerf_data():
     with open(f'{ORIG_PREFIX}/transforms.json', 'r') as inputf:
         data = json.load(inputf)
+    files = os.listdir(f'{ORIG_PREFIX}/images')
+
+    train_split = int(len(files) * 0.8)
+    val_split = train_split + int(len(files) * 0.1)
+    test_split = len(files)
+
+    print(train_split, val_split, test_split)
+
+    # print(files)
+    # new_files = []
+    # for i in files:
+    #     num = int(i.split('_')[-1].split('.')[0])
+    #     num = f"{num:03}"
+    #     new_files.append(num)
+    # files = new_files
+
+    split(data, 0, train_split, "train")
+    split(data, train_split, val_split, "val")
+    split(data, val_split, len(files), "test")
+
+def rename():
+    with open(f'{ORIG_PREFIX}/old.json', 'r') as inputf:
+        data = json.load(inputf)
     files = os.listdir(f'{ORIG_PREFIX}/train/good')
-    files.sort()
+    split_data = {'camera_angle_x': CAM_ANGLE, 'frames': []}
+    name = "train/good"
     for i in range(len(files)):
-        data['frames'][i]['file_path'] = f'test/good/{files[i][:-4]}'
+        print(i)
+        split_data['frames'].append({
+            'file_path': f"{name}/{i:03d}",
+            'transform_matrix': data[str(i)]['transform_matrix']
+        })
+    with open(f"{NEW_PREFIX}/transforms_train.json", 'w') as outputf:
+        json.dump(split_data, outputf, indent=4)
 
-    with open(f'{NEW_PREFIX}/transforms_test.json', 'w') as outputf:
-        json.dump(data, outputf, indent=2)
+# def resize():
+#     for root, dirs, files in os.walk(ORIG_PREFIX):
+#         for file in files:
+#             if file[-4:] == ".png":
+#                 full_path = os.path.join(root, file)
+#                 img = cv2.imread(full_path)
+#                 resized = cv2.resize(img, (800, 800), interpolation=cv2.INTER_AREA)
+#                 if file[-8:] == "mask.png":
+#                     print(file)
+#                     resized = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+#                 cv2.imwrite(full_path, resized)
 
-# dest = f"{ORIG_PREFIX}/ground_truth/defect-bottom-right"
-# mask_files = os.listdir(dest)
-# # mask_files.sort(key=lambda x:x[])
+# def mask_resize():
+#     upper_left = (1090, 0)
+#     bottom_right = (upper_left[0] + 2048, upper_left[1] + 2138)
+#     files = os.listdir(ORIG_PREFIX)
 
-# for i in range(len(mask_files)):
-#     old = mask_files[i]
-#     frame_number = int(old.split('=')[1].split('.')[0])
-#     new_name = f"{frame_number:03}_mask.png"
+#     for f in files:
+#         full_path = os.path.join(ORIG_PREFIX, f)
+#         img = cv2.imread(full_path)
+#         resized = img[upper_left[1]:bottom_right[1], upper_left[0]:bottom_right[0]]
+#         resized = cv2.resize(resized, (800, 800), interpolation=cv2.INTER_AREA)
+#         resized = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
 
-#     shutil.move(src=f"{dest}/{old}", dst=f"{dest}/{new_name}")
+#         new_name = f"{int(f.split('.')[0].split('=')[-1]):03}_mask.png"
+#         cv2.imwrite(os.path.join(NEW_PREFIX, new_name), resized)

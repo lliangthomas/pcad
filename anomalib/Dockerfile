@@ -8,7 +8,10 @@ RUN apt-get update \
     && apt-get install -y wget ffmpeg libsm6 libxext6
 
 # Anomalib
-RUN pip install anomalib \
+RUN git clone https://github.com/openvinotoolkit/anomalib.git anomalib-git \
+    && cd anomalib-git \
+    && git checkout c3e0b38 \ 
+    && pip install . \
     && anomalib install \
     # pkg_resources deprecated from setuptools >= 70
     && pip install setuptools==69.5.1

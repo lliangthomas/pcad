@@ -306,7 +306,7 @@ class ModelHelper(torch.nn.Module):
                 kwargs["inplanes"] = prev_module.get_outplanes()
                 kwargs["instrides"] = prev_module.get_outstrides()
 
-            print(mtype, kwargs)
+            # print(mtype, kwargs)
             module = self.build(mtype, kwargs)
             self.add_module(mname, module)
             break
@@ -478,7 +478,7 @@ def downsampling(x, size, to_tensor=False, bin=True):
 
 
 class DefectDataset(Dataset):
-    def __init__(self, dataset_dir, class_name, set='train', get_mask=True, get_features=True, train_subset=None):
+    def __init__(self, dataset_dir, class_name, set='train', get_mask=True, get_features=True, train_subset=None, separate_by_defect=None):
         super(DefectDataset, self).__init__()
         self.set = set
         self.labels = list()
@@ -518,6 +518,14 @@ class DefectDataset(Dataset):
         for sc in subclass:
             if sc == 'good' or sc == "nerf":
                 label = 0
+            elif separate_by_defect:
+                # only focus on one defect type at a time
+                if sc == separate_by_defect:
+                    label = class_counter
+                    self.class_names.append(sc)
+                    class_counter += 1
+                else:
+                    continue
             else:
                 label = class_counter
                 self.class_names.append(sc)
@@ -547,7 +555,7 @@ class DefectDataset(Dataset):
 
         self.img_mean = torch.FloatTensor(norm_mean)[:, None, None]
         self.img_std = torch.FloatTensor(norm_std)[:, None, None]
-        print(f"{set} DATASET IMAGES: {self.images}")
+        # print(f"{set} DATASET IMAGES: {self.images}")
     def __len__(self):
         return len(self.images)
 

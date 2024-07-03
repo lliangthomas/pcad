@@ -23,3 +23,5 @@ docker run $gpus --shm-size 96G \
 	--rm \
 	benchmark-sp \
 	/bin/bash -c "pip install /workspace/gaussian-splatting/submodules/diff-gaussian-rasterization /workspace/gaussian-splatting/submodules/simple-knn && pip install -r /workspace/splatpose/requirements.txt && cd /workspace/splatpose/ && python train_and_render.py -c mguard"
+
+docker run 

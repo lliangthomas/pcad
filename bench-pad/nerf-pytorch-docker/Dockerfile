@@ -8,4 +8,3 @@ RUN apt-get update && \
     git clone https://github.com/changh95/nerf-pytorch-docker.git && \
     cd nerf-pytorch-docker && \
     pip3 install -r requirements.txt
-RUN rm -rf nerf-pytorch-docker

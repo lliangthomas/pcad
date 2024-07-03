@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils_pose_est import DefectDataset, pose_retrieval_loftr, camera_transf
 
-def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, data_dir=None):
+def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, data_dir=None, skip=1, separate_by_defect=None):
     
     model_dir = model_dir_location
     trainset = DefectDataset(data_dir, cur_class, "train", True, True)
@@ -22,7 +22,7 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
     train_poses = np.concatenate([np.array(a["transform_matrix"])[None,...] for a in trainset.camera_transforms["frames"]])
     train_imgs = torch.movedim(torch.nn.functional.interpolate(train_imgs, (400,400)), 1, 3).numpy()
     
-    testset = DefectDataset(data_dir, cur_class, "test", True, True)
+    testset = DefectDataset(data_dir, cur_class, "test", True, True, separate_by_defect=separate_by_defect)
     camera_angle_x = trainset.camera_angle
 
     # Set up command line argument parser
@@ -39,7 +39,8 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
 
     dataset = model.extract(args)
     pipeline = pipeline.extract(args)
-    bg_color = [1,1,1]
+    # bg_color = [1,1,1]
+    bg_color = [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
     
     if verbose:
@@ -55,11 +56,10 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
     times = list()
     
     print("STARTING POSE ESTIMATION")
-    
-    for i in tqdm(range(len(testset))):
+
+    def sub(i):
         cur_path = testset.images[i].split("/")
         filename = f"{cur_path[-2]}_{cur_path[-1]}.png"
-
         set_entry = testset[i]
         
         all_labels.append(set_entry[1])
@@ -136,14 +136,16 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
         end.record()
         torch.cuda.synchronize()
         times.append(start.elapsed_time(end))
+
+    for i in tqdm(range(0, len(testset), skip)):
+        sub(i)
         
     print("all labels:", all_labels, len(all_labels))
-    for i in range(5):
+    for i in range(min(len(normal_images), 1)):
         print(f"norm: {normal_images[i].shape}. ref: {reference_images[i].shape}. gt: {gt_masks[i].shape}")
     
-    assert len(normal_images) == len(reference_images) == len(testset), f"Wrongly sized sets!" \
-                                                                         f"{len(normal_images)}. {len(reference_images)}. {len(testset)}"
     assert len(normal_images) == len(gt_masks), f"Wrongly sized sets! {len(normal_images)}. {len(gt_masks)}"
+
     return normal_images, reference_images, all_labels, gt_masks, times
  
  
@@ -185,7 +187,8 @@ def evaluate_pose_estimation(cur_class, model_dir_location, k=150, verbose=False
 
     dataset = model.extract(args)
     pipeline = pipeline.extract(args)
-    bg_color = [1,1,1]
+    # bg_color = [1,1,1]
+    bg_color = [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
     
     if verbose:
@@ -201,8 +204,9 @@ def evaluate_pose_estimation(cur_class, model_dir_location, k=150, verbose=False
     
     print("STARTING POSE ESTIMATION")
     
-    for i in tqdm(range(len(testset))):
-        
+    # for i in tqdm(range(len(testset))):
+    print(testset[0])
+    for i in range(len(testset)):
         cur_path = testset.images[i].split("/")
         filename = f"{cur_path[-2]}_{cur_path[-1]}"
         set_entry = testset[i]
@@ -241,7 +245,7 @@ def evaluate_pose_estimation(cur_class, model_dir_location, k=150, verbose=False
         coarse_t_error.append(torch.sqrt(torch.sum((gt_trans - orig_init[:3,3]) ** 2)).item())
         init_quat = torch.nn.functional.normalize(matrix_to_quaternion(orig_init[:3,:3]), dim=0).type(torch.float)
         coarse_rot_error.append(torch.arccos(torch.abs(torch.dot(gt_quat, init_quat))).item())        
-           
+        print(f"K: {k}", flush=True)
         for iters in range(k):
             optimizer.zero_grad()
             cur_view = Camera(colmap_id=123, R=c2w_init[:3,:3].cpu().numpy(), T=c2w_init[:3,3].cpu().numpy(),
@@ -256,6 +260,7 @@ def evaluate_pose_estimation(cur_class, model_dir_location, k=150, verbose=False
             gt_image = set_entry[0].to("cuda")
             
             loss = 0.8 * l1_loss(rendering, gt_image) + 0.2 * (1 - ssim(rendering, gt_image))
+            print(f"Loss: {loss}", flush=True)
             loss.backward()
             optimizer.step()
             

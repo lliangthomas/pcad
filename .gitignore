@@ -1,10 +1,8 @@
+results
 .DS_Store
-data
+*dataset*
 uncompressed
 old-data
-nerf-data
-orig-data
-processed_data
 MAD-Sim*
 retrieval
 __pycache__

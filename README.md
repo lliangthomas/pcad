@@ -4,5 +4,4 @@ docker run --gpus all -v /home/thomasl/tmdt-benchmark/data:/workspace/data -v /h
 
 ns-process-data images --data data/class-01/train/good --output-dir colmap-output
 
-
 docker run --rm -it --gpus all -v /home/thomasl/tmdt-benchmark/data:/workspace/data test-nerfdocker

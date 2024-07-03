@@ -2,6 +2,7 @@
 import numpy as np
 from bisect import bisect
 from scipy.ndimage.measurements import label
+import torch
 
 # Code is taken from the official reference of the MVTec evaluation code 
 # found at https://www.mvtec.com/company/research/datasets/mvtec-ad 

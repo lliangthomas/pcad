@@ -14,6 +14,11 @@ from scipy.ndimage import gaussian_filter
 from easydict import EasyDict
 import yaml
 
+from PIL import Image
+import matplotlib.pyplot as plt
+import cv2
+import matplotlib.cm as cm
+
 classnames = {}
 
 pre_parser = ArgumentParser(description="Training parameters")
@@ -25,9 +30,11 @@ pre_parser.add_argument("-p", "-prefix", metavar="pf", type=str, help="prefix fo
 pre_parser.add_argument("-seed", type=int, help="seed for random behavior", default=0)
 pre_parser.add_argument("-gauss_iters", type=int, help="number of training iterations for 3DGS", default=30000)
 pre_parser.add_argument("-wandb", type=int, help="whether we track with wandb", default=0)
-pre_parser.add_argument("-train", type=int, help="whether we train or look for a saved model", default=1)                   
-pre_parser.add_argument("-v", type=int, help="verbosity", default=0)                        
-pre_parser.add_argument("-data_path", type=str, help="path pointing towards the usable data set", default="/workspace/data")                        
+pre_parser.add_argument("-train", type=int, help="whether we train or look for a saved model", default=0)                   
+pre_parser.add_argument("-v", type=int, help="verbosity", default=1)                        
+pre_parser.add_argument("-data_path", type=str, help="path pointing towards the usable data set", default="/workspace/data")
+pre_parser.add_argument("-skip", type=int, help="number of test images to skip", default=150)
+pre_parser.add_argument("-defect", type=str, help="perform tests on one defect at a time, specify a defect that the class has here")                                
 
 args = pre_parser.parse_args()
 
@@ -49,9 +56,10 @@ projectname = config["prefix"]
 if config["wandb"] != 0:
     run = wandb.init(project=projectname, config=config, name=f"{config['prefix']}_{config['classname']}")
 
-data_path = os.path.join(data_base_dir, config["classname"])
-result_dir = os.path.join(data_base_dir, f"results_{config['prefix']}_{config['seed']}", config["classname"])
-print("saving model to: ", result_dir)
+data_path = os.path.join(data_base_dir, config["classname"]) # where the training dataset should be saved
+result_dir = "/home/thomasl/tmdt-benchmark/gaussian-splatting/output/" + config["classname"] + "_real" # where the gaussian splatting is
+data_dir = "/home/thomasl/tmdt-benchmark/0702_dataset" # where the original dataset is
+# print("saving model to: ", result_dir)
 os.makedirs(result_dir, exist_ok=True)
 
 if config["train"] != 0:
@@ -111,8 +119,9 @@ test_images, reference_images, all_labels, gt_masks, times = main_pose_estimatio
     model_dir_location=result_dir,
     k=config["k"],
     verbose=config["verbose"],
-    # data_dir="/home/thomasl/tmdt-benchmark/data" # TODO 
-    data_dir="/workspace/orig-data"
+    data_dir=data_dir,
+    skip=args.skip,
+    separate_by_defect=args.defect
 )
 
 if config["wandb"] != 0:
@@ -120,7 +129,6 @@ if config["wandb"] != 0:
     columns = ["index", "time_millis"]
     cur_table = wandb.Table(data=my_data, columns=columns)
     wandb.log({"time_millis": cur_table})
-
 
 with open("PAD_utils/config_effnet.yaml") as f:
     mad_config = EasyDict(yaml.load(f, Loader=yaml.FullLoader))
@@ -162,22 +170,70 @@ with torch.no_grad():
             score += torch.nn.functional.interpolate(mse_loss, size=224, mode='bilinear', align_corners=False)
 
         score = score.squeeze(1).cpu().numpy()
-        # print(score.shape)
         for i in range(score.shape[0]):
-            # print(f"{i}-th shape: {score[i].shape}")
             score[i] = gaussian_filter(score[i], sigma=4)
-            # print(f"{i}-th shape: {score[i].shape}")
         recon_imgs.extend(rgb.cpu().numpy())
         test_imgs.extend(ref.cpu().numpy())
         scores.append(score)
+
+# scores = np.asarray(scores).squeeze()
+# max_anomaly_score = scores.max()
+# min_anomaly_score = scores.min()
+# scores = (scores - min_anomaly_score) / (max_anomaly_score - min_anomaly_score) 
+# gt_mask = np.concatenate([np.asarray(tf_mask(a))[None,...] for a in gt_masks], axis=0)
+# gt_mask[gt_mask == 255] = 1
+# results = {args.c: {}}
+# classes = os.listdir(os.path.join(data_dir, f"{args.c}/ground_truth"))
+# num_classes = len(classes) if args.defect else 1
+# num_per_class = int(288 / args.skip)
+# num_good_mask = int(288 / (args.skip / 4))
+# cur_good_mask = num_good_mask
+# good_mask_per_class = int(num_good_mask / num_classes)
+
+# gt_mask = torch.tensor(gt_mask)
+# scores = torch.tensor(scores)
+
+# for i in range(0, len(gt_masks) - num_good_mask, num_per_class):
+#     cur_gt_mask = np.concatenate((gt_mask[i:i + num_per_class], gt_mask[cur_good_mask:cur_good_mask + good_mask_per_class]))
+#     cur_score = np.concatenate((scores[i:i + num_per_class], scores[cur_good_mask:cur_good_mask + good_mask_per_class]))
+#     cur_good_mask += good_mask_per_class
+
+#     per_pixel_rocauc = roc_auc_score(cur_gt_mask.flatten(), cur_score.flatten())
+#     # print('PIXEL ROCAUC: %.3f' % (per_pixel_rocauc))
+#     print(cur_gt_mask)
+#     print(cur_score)
+#     au_pro, au_roc, pro_curve, roc_curve = calculate_au_pro_au_roc(cur_gt_mask, cur_score)
+
+#     img_scores = scores.reshape(scores.shape[0], -1).max(axis=1)
+#     gt_list_isano = np.asarray(all_labels) != 0
+#     img_roc_auc = roc_auc_score(gt_list_isano, img_scores)
+#     # print('IMAGE ROCAUC: %.3f' % (img_roc_auc))
+    
+#     class_dict = {}
+#     cur_anomaly = classes[i // num_per_class]
+#     class_dict[cur_anomaly] = {} 
+#     class_dict[cur_anomaly]["PIXEL AUPRO"] = au_pro
+#     class_dict[cur_anomaly]["PIXEL AUROC"] = per_pixel_rocauc
+#     class_dict[cur_anomaly]["IMAGE AUROC"] = img_roc_auc
+#     results[args.classname] = class_dict
 
 scores = np.asarray(scores).squeeze()
 max_anomaly_score = scores.max()
 min_anomaly_score = scores.min()
 scores = (scores - min_anomaly_score) / (max_anomaly_score - min_anomaly_score)
+
+plt.imsave(fname="sp_heatmap.png", arr=scores[0])
+print(scores[0].shape)
+transform_img = cv2.resize(test_images[0].permute(1, 2, 0).numpy(), dsize=(224, 224))
+# gray_image_3ch = np.stack((scores[0], scores[0], scores[0]), axis=-1)
+gray_image_3ch = cm.viridis(scores[0])[..., :3].astype(np.float32)
+print(transform_img.dtype)
+heatmap_overlay_img = cv2.addWeighted(src1=gray_image_3ch, alpha=0.5, src2=transform_img, beta=0.5, gamma=0) 
+plt.imsave(fname="sp_heatmap_overlay.png", arr=heatmap_overlay_img)
+
 gt_mask = np.concatenate([np.asarray(tf_mask(a))[None,...] for a in gt_masks], axis=0)
-gt_mask[gt_mask == 255] = 1 # Added
-precision, recall, thresholds = precision_recall_curve(gt_mask.flatten(), scores.flatten()) # Error in code ?
+gt_mask[gt_mask == 255] = 1
+precision, recall, thresholds = precision_recall_curve(gt_mask.flatten(), scores.flatten())
 a = 2 * precision * recall
 b = precision + recall
 f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
