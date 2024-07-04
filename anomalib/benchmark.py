@@ -49,6 +49,10 @@ def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=3
         cur_root = os.path.join(ROOT_DATA, cur_class)
         for i, cur_anomaly in enumerate(classnames[cur_class]):
             if task != TaskType.SEGMENTATION and task != TaskType.CLASSIFICATION: pass
+
+            # the following code resolves the issue of any disparity 
+            # between the ground truth masks and test images
+
             # test_images = os.path.join(cur_root, "test", cur_anomaly)
             # a = set(os.listdir(test_images))
             # test_gt = os.path.join(cur_root, "ground_truth", cur_anomaly)
@@ -59,6 +63,7 @@ def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=3
             #     os.remove(os.path.join(test_images, i))
             # for i in diff2:
             #     os.remove(os.path.join(test_gt, i))
+
             datamodule = Folder(
                 name=cur_class,
                 root=cur_root,
@@ -74,7 +79,7 @@ def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=3
             datamodule.setup()
             print(f"{model_name=}, {cur_class=}, {cur_anomaly=}")
             if i == 0:
-                # only need to fit once to the good data instead of fitting every single time
+                # only need to fit once to the good data instead of fitting every single time?
                 engine.fit(datamodule=datamodule, model=model)
                 test_results = engine.test(
                     model=model,
@@ -133,33 +138,35 @@ def benchmark_anomalib(model_name, model, output_file, task: Union[TaskType.SEGM
         if model_name == "EfficientAd": train_batch_size = 1
         train_benchmark(model_name, cur_model, task, output_file, train_batch_size)
 
-def inference(model_name, path="/home/thomasl/tmdt-benchmark/dataset", skip=35):
+def inference(path, skip=35):
+
     def get_heatmap(inferencer, path, save_path):
         os.makedirs(save_path, exist_ok=True)
         files = os.listdir(path)
         for filename in files[::skip]:
             try:
-                image = read_image(f"{path}/{filename}.png", as_tensor=True) # as_tensor is required
+                image = read_image(f"{path}/{filename}", as_tensor=True) # as_tensor is required
                 predict = inferencer.predict(image)
-                plt.imsave(f"{save_path}/{filename}.png", predict.heat_map)
+                plt.imsave(f"{save_path}/{filename}", predict.heat_map)
             except FileNotFoundError:
                 continue
 
-    for cur_class in classnames.keys():
-        inferencer = TorchInferencer(path=f"results/{model_name}/{cur_class}/latest/weights/torch/model.pt", device='auto')
-        for cur_anomaly in classnames[cur_class]:
-            get_heatmap(inferencer, f"{path}/{cur_class}/test/{cur_anomaly}", f"heatmap/{model_name}/{cur_class}/{cur_anomaly}")
-        get_heatmap(inferencer, f"{path}/{cur_class}/train/good", f"heatmap/{model_name}/{cur_class}/good")
+    for model_name in os.listdir("results"):
+        for cur_class in classnames.keys():
+            inferencer = TorchInferencer(path=f"results/{model_name}/{cur_class}/latest/weights/torch/model.pt", device='auto')
+            for cur_anomaly in classnames[cur_class]:
+                get_heatmap(inferencer, f"{path}/{cur_class}/test/{cur_anomaly}", f"heatmap/{model_name}/{cur_class}/{cur_anomaly}")
+            get_heatmap(inferencer, f"{path}/{cur_class}/train/good", f"heatmap/{model_name}/{cur_class}/good")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Anomalib benchmark')
     parser.add_argument('--model', type=str, help="Model to train")
-    parser.add_argument('--data', type=str, help="Root data directory for Anomalib")
+    parser.add_argument('--data', type=str, help="Root data directory for Anomalib", default="/home/thomasl/tmdt-benchmark/dataset")
     parser.add_argument('--inference', action='store_true')
     args = parser.parse_args()
     output = f"results_{args.model}.json"
     if args.inference:
-        inference(args.model)
+        inference(args.data)
     else:
         ROOT_DATA = args.data
         model = None
