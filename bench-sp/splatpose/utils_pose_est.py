@@ -542,7 +542,8 @@ class DefectDataset(Dataset):
                 self.images.append(i_path)
                 self.labels.append(label)
                 if self.set == 'test' and self.get_mask:
-                    extension = '_mask' if sc != 'good' else ''
+                    # extension = '_mask' if sc != 'good' else ''
+                    extension = ''
                     mask_path = os.path.join(root, 'ground_truth', sc, p[:-4] + extension + p[-4:])
                     self.masks.append(mask_path)
                 elif self.get_mask:

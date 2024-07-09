@@ -137,7 +137,7 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
         torch.cuda.synchronize()
         times.append(start.elapsed_time(end))
 
-    for i in tqdm(range(0, len(testset), skip)):
+    for i in range(0, len(testset), skip):
         sub(i)
         
     print("all labels:", all_labels, len(all_labels))

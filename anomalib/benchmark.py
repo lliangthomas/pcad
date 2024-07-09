@@ -14,41 +14,49 @@ import sys
 import argparse
 import os
 import json
+import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
 classnames = {
+    # "02Unicorn": ["Burrs", "Missing", "Stains"],
+    # "03Mallard": ["Burrs", "Missing", "Stains"],
+    # "04Turtle": ["Burrs", "Missing", "Stains"]
     "bus_coppler_green": ["defect-exchange-rails-l-cr", "defect-exchange-rails-cl-cr",
                         "defect-mount-clipper", "defect-rail-cr", "defect-rail-l"], 
     "bus_coppler_gray" : ["defect-exchange-rails-l-cr", "defect-exchange-rails-cl-cr",
                         "defect-mount-clipper", "defect-rail-cr", "defect-rail-l"],
     "2700642": ["defect-bottom-right", "defect-bottom-left", "defect-top-right", "defect-top-left"],
     "switch_8_port": ["defect-mount-clipper", "defect-connector-side"], 
-    # "switch_16_port": [""],
+    "switch_16_port": ["defect-mount-clipper", "defect-connector-side"],
 }
+
 SEED = 0
 ROOT_DATA = ""
 results = {}
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-callbacks = [
-    ModelCheckpoint(
-        mode="max",
-        monitor="pixel_AUROC",
-    ),
-    EarlyStopping(
-        monitor="pixel_AUROC",
-        mode="max",
-        patience=15,
-    ),
-]
 
 def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=32):
     for cur_class in classnames.keys():
+        callbacks = [
+            ModelCheckpoint(
+                mode="max",
+                monitor="pixel_AUROC",
+                dirpath=f"results/{model_name}/{cur_class}"
+            ),
+            EarlyStopping(
+                monitor="pixel_AUROC",
+                mode="max",
+                patience=10,
+            ),
+        ]
         model = cur_model()
         engine = Engine(task=task, callbacks=callbacks)
         cur_root = os.path.join(ROOT_DATA, cur_class)
         for i, cur_anomaly in enumerate(classnames[cur_class]):
             if task != TaskType.SEGMENTATION and task != TaskType.CLASSIFICATION: pass
+            
+            print(f"{model_name=}, {cur_class=}, {cur_anomaly=}")
 
             # the following code resolves the issue of any disparity 
             # between the ground truth masks and test images
@@ -77,19 +85,22 @@ def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=3
             )
             
             datamodule.setup()
-            print(f"{model_name=}, {cur_class=}, {cur_anomaly=}")
             if i == 0:
-                # only need to fit once to the good data instead of fitting every single time?
-                engine.fit(datamodule=datamodule, model=model)
-                test_results = engine.test(
-                    model=model,
-                    datamodule=datamodule,
-                    ckpt_path=engine.trainer.checkpoint_callback.best_model_path,
-                    verbose=False
-                )
+                # only need to fit once to the good data instead of fitting every single time
+                engine.fit(datamodule=datamodule, model=model, ckpt_path=None)
+                # test_results = engine.test(
+                #     model=model,
+                #     datamodule=datamodule,
+                #     ckpt_path=engine.trainer.checkpoint_callback.best_model_path,
+                #     verbose=False
+                # )
                 engine.export(model=model, export_type=ExportType.TORCH)
 
-            predict = engine.predict(datamodule=datamodule, model=model, ckpt_path=f"results/{model_name}/{cur_class}/latest/weights/lightning/model.ckpt")
+            predict = engine.predict(
+                datamodule=datamodule, 
+                model=model, 
+                ckpt_path=f"results/{model_name}/{cur_class}/latest/weights/lightning/model.ckpt"
+            )
 
             aupro = AUPRO()
             auroc = AUROC()
@@ -105,9 +116,9 @@ def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=3
                 all_labels.extend(batch['label'].tolist())
                 all_pred_labels.extend(batch['pred_labels'].tolist())
 
-            all_masks = torch.tensor(all_masks, dtype=int)
+            all_masks = torch.tensor(all_masks, dtype=torch.int)
             all_pred_masks = torch.tensor(all_pred_masks, dtype=torch.float32)
-            all_labels = torch.tensor(all_labels, dtype=int)
+            all_labels = torch.tensor(all_labels, dtype=torch.int)
             all_pred_labels = torch.tensor(all_pred_labels, dtype=torch.float32)
 
             class_dict = results.get(cur_class, {})
@@ -118,6 +129,8 @@ def train_benchmark(model_name, cur_model, task, output_file, train_batch_size=3
             results[cur_class] = class_dict
             print(results)
 
+    results["METHOD"] = model_name
+    # print(results)
     with open(output_file, 'w') as f:
         json.dump(results, f, indent=4)
    
@@ -138,7 +151,7 @@ def benchmark_anomalib(model_name, model, output_file, task: Union[TaskType.SEGM
         if model_name == "EfficientAd": train_batch_size = 1
         train_benchmark(model_name, cur_model, task, output_file, train_batch_size)
 
-def inference(path, skip=35):
+def inference(path, skip):
 
     def get_heatmap(inferencer, path, save_path):
         os.makedirs(save_path, exist_ok=True)
@@ -163,10 +176,10 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, help="Model to train")
     parser.add_argument('--data', type=str, help="Root data directory for Anomalib", default="/home/thomasl/tmdt-benchmark/dataset")
     parser.add_argument('--inference', action='store_true')
+    parser.add_argument('--skip', type=int, default=30)
     args = parser.parse_args()
-    output = f"results_{args.model}.json"
     if args.inference:
-        inference(args.data)
+        inference(args.data, args.skip)
     else:
         ROOT_DATA = args.data
         model = None
@@ -176,4 +189,4 @@ if __name__ == "__main__":
             print("Model not valid. Use one from anomalib.")
             print(e, file=sys.stderr)
         if model:
-            benchmark_anomalib(args.model, model, output)
+            benchmark_anomalib(args.model, model, output_file=f"results_{args.model}.json")

@@ -58,6 +58,16 @@ def rename():
     with open(f"{NEW_PREFIX}/transforms_train.json", 'w') as outputf:
         json.dump(split_data, outputf, indent=4)
 
+def mad_rename(dir):
+    files = os.listdir(dir)
+    files.sort()
+    for i in range(len(files)):
+        os.rename(os.path.join(dir, files[i]), os.path.join(dir, f"{i:03d}.png"))
+
+for j in ["ground_truth", "test"]:
+    for i in ["Burrs", "Missing", "Stains"]:
+        mad_rename(f"MAD-Sim/04Turtle/{j}/{i}")
+
 # def resize():
 #     for root, dirs, files in os.walk(ORIG_PREFIX):
 #         for file in files:
