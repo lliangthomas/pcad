@@ -10,7 +10,7 @@ RUN apt-get update \
 # Anomalib
 RUN git clone https://github.com/openvinotoolkit/anomalib.git anomalib-git \
     && cd anomalib-git \
-    && git checkout c3e0b38 \ 
+    && git checkout c3e0b38 \
     && pip install . \
     && anomalib install \
     # pkg_resources deprecated from setuptools >= 70

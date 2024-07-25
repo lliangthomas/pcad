@@ -24,13 +24,13 @@ classnames = {
     # "02Unicorn": ["Burrs", "Missing", "Stains"],
     # "03Mallard": ["Burrs", "Missing", "Stains"],
     # "04Turtle": ["Burrs", "Missing", "Stains"]
-    "bus_coppler_green": ["defect-exchange-rails-l-cr", "defect-exchange-rails-cl-cr",
-                        "defect-mount-clipper", "defect-rail-cr", "defect-rail-l"], 
-    "bus_coppler_gray" : ["defect-exchange-rails-l-cr", "defect-exchange-rails-cl-cr",
-                        "defect-mount-clipper", "defect-rail-cr", "defect-rail-l"],
-    "2700642": ["defect-bottom-right", "defect-bottom-left", "defect-top-right", "defect-top-left"],
-    "switch_8_port": ["defect-mount-clipper", "defect-connector-side"], 
-    "switch_16_port": ["defect-mount-clipper", "defect-connector-side"],
+    # "bus_coppler_green": ["defect-exchange-rails-l-cr", "defect-exchange-rails-cl-cr",
+                        # "defect-mount-clipper", "defect-rail-cr", "defect-rail-l"], 
+    # "bus_coppler_gray" : ["defect-exchange-rails-l-cr", "defect-exchange-rails-cl-cr",
+                        # "defect-mount-clipper", "defect-rail-cr", "defect-rail-l"],
+    # "2700642": ["defect-bottom-right", "defect-bottom-left", "defect-top-right", "defect-top-left"],
+    "switch_8_port": ["defect-exchange-rj-45"], # "defect-mount-clipper", "defect-connector-side", 
+    # "switch_16_port": ["defect-mount-clipper", "defect-connector-side", "defect-exchange-rj-45"], # 
 }
 results = {}
 
@@ -70,9 +70,8 @@ config = {
 #     run = wandb.init(project=projectname, config=config, name=f"{config['prefix']}_{config['classname']}")
 
 def run(classname, defect, run_3dgs_train, i, skip):
-
     result_dir = "/home/thomasl/tmdt-benchmark/gaussian-splatting/output/" + classname + "_real" # where the gaussian splatting is
-    data_dir = "/home/thomasl/tmdt-benchmark/0708_dataset" # where the original dataset is
+    data_dir = "/home/thomasl/tmdt-benchmark/latest_dataset" # where the original dataset is
     os.makedirs(result_dir, exist_ok=True)
 
     data_path = os.path.join(data_base_dir, classname) # where the 3dgs training dataset should be saved
@@ -127,7 +126,7 @@ def run(classname, defect, run_3dgs_train, i, skip):
     from utils_pose_est import ModelHelper, update_config
     from aupro import calculate_au_pro_au_roc
 
-    test_images, reference_images, all_labels, gt_masks, times = main_pose_estimation(
+    test_images, reference_images, all_labels, gt_masks, times, filenames = main_pose_estimation(
         cur_class=classname,
         model_dir_location=result_dir,
         k=config["k"],
@@ -195,16 +194,16 @@ def run(classname, defect, run_3dgs_train, i, skip):
     scores = (scores - min_anomaly_score) / (max_anomaly_score - min_anomaly_score)
 
     # Generates heatmap
-    save_path = f"results/{classname}/{defect}"
+    save_path = f"heatmap/Splatpose/{classname}/{defect}"
     os.makedirs(save_path, exist_ok=True)
-    for i in range(len(scores)):
+    for i, filename in enumerate(filenames):
         transform_img = (cv2.resize(test_images[i].permute(1, 2, 0).numpy(), dsize=(224, 224)) * 255).astype(np.uint8)
         overlay = (scores[i] * 255).astype(np.uint8)
         overlay = cv2.cvtColor(overlay, cv2.COLOR_GRAY2RGB)
         overlay = cv2.applyColorMap(overlay, cv2.COLORMAP_JET)
         overlay = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
         heatmap_overlay_img = cv2.addWeighted(src1=overlay, alpha=0.7, src2=transform_img, beta=0.3, gamma=0) 
-        plt.imsave(fname=f"{save_path}/heatmap_{i:03d}.png", arr=heatmap_overlay_img)
+        plt.imsave(fname=f"{save_path}/{filename}", arr=heatmap_overlay_img)
 
     gt_mask = np.concatenate([np.asarray(tf_mask(a))[None,...] for a in gt_masks], axis=0)
     gt_mask[gt_mask == 255] = 1
@@ -230,7 +229,7 @@ for classname in classnames.keys():
     for i, defect in enumerate(classnames[classname]):
         run(classname, defect, run_3dgs_train=0, i=i, skip=args.skip)
 
-results["MODEL"] = "Splatpose"
-output_file = "results_Splatpose.json"
+results["METHOD"] = "Splatpose"
+output_file = "results_Splatpose_rj45.json"
 with open(output_file, 'w') as f:
     json.dump(results, f, indent=4)

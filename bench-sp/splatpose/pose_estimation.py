@@ -16,7 +16,9 @@ from utils_pose_est import DefectDataset, pose_retrieval_loftr, camera_transf
 def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, data_dir=None, skip=1, separate_by_defect=None):
     
     model_dir = model_dir_location
-    trainset = DefectDataset(data_dir, cur_class, "train", True, True)
+    # print(data_dir)
+
+    trainset = DefectDataset("/home/thomasl/tmdt-benchmark/latest_dataset", cur_class, "train", True, True)
 
     train_imgs = torch.cat([a[0][None,...] for a in trainset], dim=0)
     train_poses = np.concatenate([np.array(a["transform_matrix"])[None,...] for a in trainset.camera_transforms["frames"]])
@@ -54,12 +56,14 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
     all_labels = list()
     gt_masks = list()
     times = list()
+    filenames = []
     
     print("STARTING POSE ESTIMATION")
 
     def sub(i):
         cur_path = testset.images[i].split("/")
         filename = f"{cur_path[-2]}_{cur_path[-1]}.png"
+        filenames.append(cur_path[-1])
         set_entry = testset[i]
         
         all_labels.append(set_entry[1])
@@ -137,7 +141,8 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
         torch.cuda.synchronize()
         times.append(start.elapsed_time(end))
 
-    for i in range(0, len(testset), skip):
+    
+    for i in tqdm(range(0, len(testset), skip)):
         sub(i)
         
     print("all labels:", all_labels, len(all_labels))
@@ -146,7 +151,7 @@ def main_pose_estimation(cur_class, model_dir_location, k=150, verbose=False, da
     
     assert len(normal_images) == len(gt_masks), f"Wrongly sized sets! {len(normal_images)}. {len(gt_masks)}"
 
-    return normal_images, reference_images, all_labels, gt_masks, times
+    return normal_images, reference_images, all_labels, gt_masks, times, filenames
  
  
 def evaluate_pose_estimation(cur_class, model_dir_location, k=150, verbose=False):

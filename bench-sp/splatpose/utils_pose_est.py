@@ -498,10 +498,12 @@ class DefectDataset(Dataset):
 
         self.pretrained_params = None
 
-        with open(os.path.join(root, "transforms.json"), "r") as f:
-            self.camera_transforms = json.load(f)
+        if set == "train":
+            with open(os.path.join(root, "transforms.json"), "r") as f:
+                self.camera_transforms = json.load(f)
 
-        self.camera_angle = self.camera_transforms["camera_angle_x"] if set == "train" else None
+            self.camera_angle = self.camera_transforms["camera_angle_x"] if set == "train" else None
+        # self.camera_angle = 1.1091441906486563
 
         aug_transform_path = os.path.join(dataset_dir, class_name, "augmented_transforms.json")
         if os.path.isfile(aug_transform_path):
