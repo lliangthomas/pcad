@@ -1,7 +1,16 @@
 # tmdt-benchmark
 
-docker run --gpus all -v /home/thomasl/tmdt-benchmark/data:/workspace/data -v /home/thomasl/tmdt-benchmark/pad/git-pad:/workspace/pad -v /home/thomasl/tmdt-benchmark/colmap-output:/workspace/colmap-output --rm -it --ipc=host dromni/nerfstudio:1.1.0
+Instructions to run the experiments:
 
-ns-process-data images --data data/class-01/train/good --output-dir colmap-output
+## Anomalib
 
-docker run --rm -it --gpus all -v /home/thomasl/tmdt-benchmark/data:/workspace/data test-nerfdocker
+- Install Anomalib and other packages such as matplotlib
+- Modify variables in anomalib/benchmark.py (classnames)
+- Train: `python benchmark.py --data <path to data> --train --skip <number of images to skip in experiments> --output <name of output file>`
+- Inference: `python benchmark.py --data <path to data> --skip <number of images to skip in experiments> --output <name of output file> --heatmap`
+
+## SplatPose
+
+- 3D Gaussian Splatting renders which can be made using the tool here: https://github.com/graphdeco-inria/gaussian-splatting
+- Once the renders are made for each of the classes, you'll need to modify some variables in bench-sp/splatpose/train_and_render.py (result_dir, data_dir, classnames, output_file)
+- `cd bench-sp/splatpose && python train_and_render.py -skip <number of images to skip in experiments>`
