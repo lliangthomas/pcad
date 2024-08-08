@@ -6,7 +6,7 @@ Instructions to run the experiments:
 
 - Install Anomalib and other packages such as matplotlib
 - Modify variables in anomalib/benchmark.py (classnames)
-- Train: `python benchmark.py --data <path to data> --train --skip <number of images to skip in experiments> --output <name of output file>`
+- Train: `python benchmark.py --data <path to data> --train --output <name of output file>`
 - Inference: `python benchmark.py --data <path to data> --skip <number of images to skip in experiments> --output <name of output file> --heatmap`
 
 ## SplatPose
