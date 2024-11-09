@@ -1,4 +1,4 @@
-# tmdt-benchmark
+# PCAD
 
 Instructions to run the experiments:
 
